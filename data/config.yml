@@ -1,0 +1,5 @@
+# 直播源列表的URL地址
+source_urls:
+  - https://example.com/source1.txt
+  - https://example.com/source2.m3u
+  - https://example.com/source3.m3u8 
