@@ -1,127 +1,139 @@
 import asyncio
 import aiohttp
-import time
+import logging
+import subprocess
 from pathlib import Path
 import yaml
 import re
 
+# 配置日志记录
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 async def fetch_content(session, url):
     """从URL获取内容"""
     try:
+        logging.info(f"正在获取内容: {url}")
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
             if response.status == 200:
-                return await response.text()
+                return await response.text(encoding='utf-8-sig')
     except Exception as e:
-        print(f"Error fetching {url}: {e}")
+        logging.error(f"获取内容失败 {url}: {e}")
     return None
 
-async def fetch_m3u8_info(session, url):
-    """获取M3U8流的详细信息"""
+def filter_content(content):
+    """过滤内容"""
+    if content is None:
+        return []
+    
+    # 定义需要过滤的关键词
+    keywords = [
+        "㊙VIP测试", "关注公众号", "天微科技", "获取测试密码", 
+        "更新时间", "♥聚玩盒子", "🌹防失联", "📡  更新日期", "👉"
+    ]
+    
+    # 过滤包含关键词的行和ipv6
+    return [line for line in content.splitlines() 
+            if line.strip() and 
+            'ipv6' not in line.lower() and 
+            not any(keyword in line for keyword in keywords)]
+
+async def check_stream(url):
+    """检查流媒体是否可用"""
     try:
-        content = await fetch_content(session, url)
-        if not content:
-            return None
-
-        info = {
-            'url': url,
-            'resolution': None,
-            'bandwidth': None,
-            'codecs': None
-        }
-
-        # 解析M3U8内容
-        lines = content.split('\n')
-        for line in lines:
-            if line.startswith('#EXT-X-STREAM-INF:'):
-                # 解析流信息
-                if 'RESOLUTION=' in line:
-                    resolution = re.search(r'RESOLUTION=(\d+x\d+)', line)
-                    if resolution:
-                        info['resolution'] = resolution.group(1)
-                if 'BANDWIDTH=' in line:
-                    bandwidth = re.search(r'BANDWIDTH=(\d+)', line)
-                    if bandwidth:
-                        info['bandwidth'] = int(bandwidth.group(1))
-                if 'CODECS=' in line:
-                    codecs = re.search(r'CODECS="([^"]+)"', line)
-                    if codecs:
-                        info['codecs'] = codecs.group(1)
-
-        return info
+        # 使用ffmpeg检查流
+        command = ['ffmpeg', '-i', url, '-t', '10', '-f', 'null', '-']
+        process = await asyncio.create_subprocess_exec(
+            *command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        try:
+            await asyncio.wait_for(process.communicate(), timeout=20)
+            return process.returncode == 0
+        except asyncio.TimeoutError:
+            process.kill()
+            logging.error(f"流检查超时: {url}")
+            return False
+            
     except Exception as e:
-        print(f"Error parsing M3U8 {url}: {e}")
+        logging.error(f"检查流时出错 {url}: {e}")
+        return False
+
+async def process_url(session, url):
+    """处理单个URL源"""
+    content = await fetch_content(session, url)
+    if content:
+        return filter_content(content)
+    return []
+
+async def check_streams(streams):
+    """检查所有流的有效性"""
+    valid_streams = []
+    total = len(streams)
+    
+    logging.info(f"开始检查 {total} 个直播源...")
+    
+    async def check_single_stream(stream):
+        if await check_stream(stream):
+            return stream
         return None
-
-def write_streams(file_path, streams):
-    """将直播源信息写入文件"""
-    with open(file_path, 'w', encoding='utf-8') as f:
-        for stream in streams:
-            if isinstance(stream, dict):
-                # 写入详细信息
-                info = []
-                info.append(f"URL: {stream['url']}")
-                if stream['resolution']:
-                    info.append(f"分辨率: {stream['resolution']}")
-                if stream['bandwidth']:
-                    info.append(f"带宽: {stream['bandwidth']}bps")
-                if stream['codecs']:
-                    info.append(f"编码: {stream['codecs']}")
-                f.write(f"{' | '.join(info)}\n")
-            else:
-                # 如果只有URL
-                f.write(f"{stream}\n")
-
-async def check_stream(session, url):
-    """检查直播源是否有效并获取信息"""
-    try:
-        timeout = aiohttp.ClientTimeout(total=10)
-        async with session.get(url, timeout=timeout) as response:
-            if response.status == 200:
-                # 获取更多信息
-                info = await fetch_m3u8_info(session, url)
-                return url, True, info
-            return url, False, None
-    except:
-        return url, False, None
-
-async def check_all_streams(urls):
-    """检查所有直播源"""
-    async with aiohttp.ClientSession() as session:
-        tasks = [check_stream(session, url) for url in urls]
-        results = await asyncio.gather(*tasks)
-        valid_streams = []
-        for url, is_valid, info in results:
-            if is_valid:
-                valid_streams.append(info if info else url)
-        return valid_streams
+    
+    # 限制并发数
+    semaphore = asyncio.Semaphore(5)
+    
+    async def bounded_check(stream):
+        async with semaphore:
+            return await check_single_stream(stream)
+    
+    tasks = [bounded_check(stream) for stream in streams]
+    results = await asyncio.gather(*tasks)
+    
+    valid_streams = [stream for stream in results if stream]
+    logging.info(f"检查完成，找到 {len(valid_streams)} 个有效直播源")
+    
+    return valid_streams
 
 def load_config():
     """加载配置文件"""
     config_path = Path('data/config.yml')
     if not config_path.exists():
-        print("配置文件不存在！")
+        logging.error("配置文件不存在！")
         return []
     
     with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
     return config.get('source_urls', [])
 
+def write_streams(file_path, streams):
+    """保存直播源到文件"""
+    with open(file_path, 'w', encoding='utf-8') as f:
+        for stream in streams:
+            f.write(f"{stream}\n")
+
 async def main():
-    # 加载配置
+    # 加载源URL列表
     source_urls = load_config()
     if not source_urls:
-        print("没有找到源地址配置！")
+        logging.error("没有找到源地址配置！")
         return
     
-    print(f"开始检查 {len(source_urls)} 个直播源...")
+    # 获取所有直播源
+    all_streams = set()
+    async with aiohttp.ClientSession() as session:
+        for url in source_urls:
+            streams = await process_url(session, url)
+            all_streams.update(streams)
     
-    # 检测有效性并获取信息
-    valid_streams = await check_all_streams(source_urls)
+    logging.info(f"总共获取到 {len(all_streams)} 个直播源")
+    
+    # 检查直播源有效性
+    valid_streams = await check_streams(list(all_streams))
     
     # 保存有效的直播源
     output_file = Path('data/valid_streams.txt')
     write_streams(output_file, valid_streams)
-    print(f"找到 {len(valid_streams)} 个有效直播源")
+    logging.info(f"已保存 {len(valid_streams)} 个有效直播源到 {output_file}")
 
 if __name__ == '__main__':
     asyncio.run(main()) 
