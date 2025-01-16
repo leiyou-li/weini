@@ -32,7 +32,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add data/valid_streams.txt
-        git add data/sorted_streams.txt
+        git add -f data/valid_streams.txt
+        git add -f data/sorted_streams.txt
         git commit -m "Update stream lists" || echo "No changes to commit"
         git push 
