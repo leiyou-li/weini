@@ -1,0 +1,5 @@
+# 这是一个示例直播源文件
+# 请将此文件替换为你的直播源列表
+http://example.com/stream1
+http://example.com/stream2
+http://example.com/stream3 
