@@ -1,12 +1,16 @@
 # 直播源列表的URL地址
 source_urls:
-https://raw.githubusercontent.com/kimwang1978/collect-tv-txt/main/merged_output.txt
-https://raw.githubusercontent.com/vbskycn/iptv/master/tv/iptv4.txt
-https://raw.githubusercontent.com/YueChan/Live/main/APTV.m3u
-http://ww.weidonglong.com/dsj.txt
-http://live.nctv.top/x.txt  //移动央视卫视能用
-http://aktv.top/live.txt
-https://raw.githubusercontent.com/yuanzl77/IPTV/main/直播/央视频道.txt
-https://live.zhoujie218.top/tv/iptv4.txt
-https://raw.githubusercontent.com/Guovin/TV/gd/output/result.txt
-https://raw.githubusercontent.com/jiangnan1224/iptv_ipv4_live/refs/heads/main/live_ipv4.txt
+  - "https://raw.githubusercontent.com/leiyou-li/IPTV4/refs/heads/main/live.txt"
+  - "https://raw.githubusercontent.com/kimwang1978/collect-tv-txt/main/merged_output.txt"
+  - "http://xhztv.top/zbc.txt"
+  - "http://ww.weidonglong.com/dsj.txt"
+  - "https://tv.youdu.fan:666/live/"
+  - "https://live.zhoujie218.top/tv/iptv6.txt"
+  - "http://tipu.xjqxz.top/live1213.txt"
+  - "https://tv.iill.top/m3u/Live"
+  - "http://www.lyyytv.cn/yt/zhibo/1.txt"
+  - "http://live.nctv.top/x.txt"
+  - "http://www.lyyytv.cn/yt/zhibo/1.txt"
+  - "https://github.moeyy.xyz/https://raw.githubusercontent.com/Ftindy/IPTV-URL/main/huyayqk.m3u"
+  - "https://ghp.ci/raw.githubusercontent.com/MemoryCollection/IPTV/refs/heads/main/itvlist.m3u"
+  - "https://live.fanmingming.com/tv/m3u/ipv6.m3u" 
