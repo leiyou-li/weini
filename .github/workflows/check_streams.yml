@@ -5,12 +5,18 @@ on:
     - cron: '0 */12 * * *'  # 每12小时运行一次
   workflow_dispatch:  # 允许手动触发
 
+# 添加权限设置
+permissions:
+  contents: write
+
 jobs:
   check-streams:
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}  # 使用 GITHUB_TOKEN
     
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -30,8 +36,8 @@ jobs:
     
     - name: Commit changes
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         git add -f data/valid_streams.txt
         git add -f data/sorted_streams.txt
         git commit -m "Update stream lists" || echo "No changes to commit"
