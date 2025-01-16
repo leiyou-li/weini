@@ -2,38 +2,62 @@ import asyncio
 import aiohttp
 import time
 from pathlib import Path
-import re
+import yaml
+
+async def fetch_content(session, url):
+    """从URL获取内容"""
+    try:
+        async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as response:
+            if response.status == 200:
+                return await response.text()
+    except Exception as e:
+        print(f"Error fetching {url}: {e}")
+    return None
 
 def parse_m3u(content):
     """解析M3U格式的内容，只返回URL列表"""
+    if not content:
+        return []
     urls = []
     lines = content.split('\n')
     for line in lines:
         line = line.strip()
-        # 只提取非空且不以#开头的行（URL行）
         if line and not line.startswith('#'):
             urls.append(line)
     return urls
 
 def parse_txt(content):
     """解析TXT格式的内容，返回直播源URL列表"""
+    if not content:
+        return []
     return [line.strip() for line in content.split('\n') 
             if line.strip() and not line.startswith('#')]
 
-def read_streams(file_path):
-    """读取并解析直播源文件"""
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+async def fetch_streams_from_url(session, url):
+    """从URL获取直播源列表"""
+    content = await fetch_content(session, url)
+    if not content:
+        return []
     
-    # 判断文件类型
-    if file_path.suffix.lower() == '.m3u' or file_path.suffix.lower() == '.m3u8':
+    # 根据URL后缀决定解析方法
+    if url.lower().endswith(('.m3u', '.m3u8')):
         return parse_m3u(content)
-    else:  # 默认作为txt处理
+    else:
         return parse_txt(content)
 
-def write_streams(file_path, streams, original_file):
-    """将直播源写入文件，统一转换为txt格式"""
-    # 直接按纯文本格式写入，每行一个URL
+def load_config():
+    """加载配置文件"""
+    config_path = Path('data/config.yml')
+    if not config_path.exists():
+        print("配置文件不存在！")
+        return []
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = yaml.safe_load(f)
+    return config.get('source_urls', [])
+
+def write_streams(file_path, streams):
+    """将直播源写入文件"""
     with open(file_path, 'w', encoding='utf-8') as f:
         for stream in streams:
             f.write(f"{stream}\n")
@@ -55,37 +79,29 @@ async def check_all_streams(urls):
         return [url for url, is_valid in results if is_valid]
 
 async def main():
-    # 支持多个输入文件
-    input_files = [
-        Path('data/streams.txt'),
-        Path('data/streams.m3u'),
-        Path('data/streams.m3u8')
-    ]
-    
-    all_streams = []
-    original_file = None
-    
-    # 读取所有存在的输入文件
-    for file_path in input_files:
-        if file_path.exists():
-            original_file = file_path  # 记住第一个存在的文件作为格式参考
-            streams = read_streams(file_path)
-            all_streams.extend(streams)
-            break
-    
-    if not original_file:
-        print("No input file found!")
+    # 加载配置
+    source_urls = load_config()
+    if not source_urls:
+        print("没有找到源地址配置！")
         return
     
-    # 检测有效性
-    valid_streams = await check_all_streams(all_streams)
+    # 获取所有直播源
+    all_streams = set()  # 使用集合去重
+    async with aiohttp.ClientSession() as session:
+        for url in source_urls:
+            print(f"正在获取直播源: {url}")
+            streams = await fetch_streams_from_url(session, url)
+            all_streams.update(streams)
     
-    # 统一使用 .txt 格式输出
-    output_file = Path('data/valid_streams.txt')
+    print(f"总共获取到 {len(all_streams)} 个直播源")
+    
+    # 检测有效性
+    valid_streams = await check_all_streams(list(all_streams))
     
     # 保存有效的直播源
-    write_streams(output_file, valid_streams, original_file)
-    print(f"Found {len(valid_streams)} valid streams out of {len(all_streams)}")
+    output_file = Path('data/valid_streams.txt')
+    write_streams(output_file, valid_streams)
+    print(f"找到 {len(valid_streams)} 个有效直播源")
 
 if __name__ == '__main__':
     asyncio.run(main()) 
