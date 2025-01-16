@@ -14,10 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: main
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -37,27 +38,26 @@ jobs:
     - name: Sort valid streams
       run: python src/sort_streams.py
     
-    - name: Commit and push changes
+    - name: Configure Git
       run: |
-        # 配置 Git
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --global user.name "github-actions[bot]"
-        
-        # 确保我们在正确的分支上
-        git checkout main
-        
-        # 获取最新更改
-        git fetch origin main
-        
-        # 使用 rebase 策略进行合并
-        git pull --rebase origin main
+    
+    - name: Commit and Push
+      run: |
+        # 重置到最新的main分支
+        git fetch origin main:main
+        git reset --hard main
         
         # 添加更改
         git add -f data/valid_streams.txt
         git add -f data/sorted_streams.txt
         
-        # 提交更改
-        git commit -m "Update stream lists" || echo "No changes to commit"
-        
-        # 强制推送更改
-        git push --force-with-lease origin main 
+        # 提交
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update stream lists"
+          # 使用force push
+          git push -f origin HEAD:main
+        fi 
