@@ -35,7 +35,22 @@ def filter_content(content):
                 "💓专享源🅰️", "💓专享源🅱️", "关于本源", "每日一首", "MovieMusic", "AMC音乐", "公告"]
     
     # 首先按关键词过滤
-    filtered_lines = [line for line in content.splitlines() if not any(keyword in line for keyword in keywords)]
+    filtered_lines = []
+    skip_section = False
+    
+    for line in content.splitlines():
+        # 检查是否是需要跳过的分类标记
+        if any(keyword in line for keyword in keywords):
+            skip_section = True
+            continue
+            
+        # 检查是否遇到新的分类标记（通常以#genre#结尾）
+        if line.strip().endswith('#genre#'):
+            skip_section = False
+            
+        # 如果不在需要跳过的分类中，添加该行
+        if not skip_section:
+            filtered_lines.append(line)
     
     # 然后移除每行中的emoji和特殊符号
     emoji_pattern = re.compile("["
