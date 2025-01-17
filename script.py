@@ -48,6 +48,31 @@ def filter_content(content):
     keywords = ["㊙VIP测试", "关注公众号", "天微科技", "获取测试密码", "更新时间", "♥聚玩盒子", "🌹防失联","📡  更新日期","👉",]
     return [line for line in content.splitlines() if not any(keyword in line for keyword in keywords)]
 
+def extract_channel_name(line: str) -> str:
+    """从直播源行中提取频道名称"""
+    # 尝试从不同格式中提取频道名称
+    if ',' in line:  # m3u格式
+        parts = line.split(',')
+        if len(parts) > 1:
+            return parts[1].strip()
+    elif '#' in line:  # 带标签的格式
+        parts = line.split('#')
+        if len(parts) > 1:
+            return parts[1].strip()
+    
+    # 如果找不到频道名，尝试从URL中提取
+    url = line.split()[0]
+    if '/' in url:
+        # 尝试从URL路径中提取可能的频道名
+        path = url.split('/')[-1]
+        if '.' in path:
+            name = path.split('.')[0]
+            # 如果名称看起来像是频道名（不是纯数字），就使用它
+            if not name.isdigit():
+                return name
+    
+    return "Unknown Channel"
+
 def check_stream_quality(url) -> Tuple[bool, float]:
     """检查流媒体质量，返回(是否可用, 质量分数)"""
     if not check_ffmpeg():
@@ -122,14 +147,6 @@ def check_stream_quality(url) -> Tuple[bool, float]:
     except Exception as e:
         logging.error(f"Error checking stream {url}: {e}")
         return False, 0.0
-
-def extract_channel_name(line: str) -> str:
-    # 尝试从行中提取频道名称
-    if ',' in line:
-        return line.split(',')[1].strip()
-    elif '#' in line:
-        return line.split('#')[1].strip()
-    return "Unknown Channel"
 
 def fetch_and_filter(urls):
     stream_data: Dict[str, Tuple[str, float]] = {}  # {频道名: (完整行, 质量分数)}
