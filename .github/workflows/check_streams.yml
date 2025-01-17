@@ -43,14 +43,20 @@ jobs:
     
     - name: Commit and Push
       run: |
-        # 暂存当前更改
-        git stash
+        # 保存生成的文件
+        mv data/valid_streams.txt /tmp/valid_streams.txt
+        mv data/sorted_streams.txt /tmp/sorted_streams.txt
         
-        # 获取最新更改
+        # 重置工作目录
+        git reset --hard
+        git clean -fd
+        
+        # 拉取最新更改
         git pull origin main
         
-        # 恢复暂存的更改
-        git stash pop
+        # 恢复生成的文件
+        mv /tmp/valid_streams.txt data/valid_streams.txt
+        mv /tmp/sorted_streams.txt data/sorted_streams.txt
         
         # 添加更改
         git add -f data/valid_streams.txt
