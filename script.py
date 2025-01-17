@@ -119,19 +119,15 @@ def fetch_and_filter(urls):
 
 if __name__ == "__main__":
     urls = [
-        'https://raw.githubusercontent.com/leiyou-li/IPTV4/refs/heads/main/live.txt',
         'https://raw.githubusercontent.com/kimwang1978/collect-tv-txt/main/merged_output.txt',
-        'http://xhztv.top/zbc.txt',
+        'https://raw.githubusercontent.com/vbskycn/iptv/master/tv/iptv4.txt',
+        'https://raw.githubusercontent.com/YueChan/Live/main/APTV.m3u',
         'http://ww.weidonglong.com/dsj.txt',
-        'https://tv.youdu.fan:666/live/',
-        'https://live.zhoujie218.top/tv/iptv6.txt',
-        'http://tipu.xjqxz.top/live1213.txt',
-        'https://tv.iill.top/m3u/Live',
-        'http://www.lyyytv.cn/yt/zhibo/1.txt',
         'http://live.nctv.top/x.txt',
-        'http://www.lyyytv.cn/yt/zhibo/1.txt',
-        'https://github.moeyy.xyz/https://raw.githubusercontent.com/Ftindy/IPTV-URL/main/huyayqk.m3u',
-        'https://ghp.ci/raw.githubusercontent.com/MemoryCollection/IPTV/refs/heads/main/itvlist.m3u',
-        'https://live.fanmingming.com/tv/m3u/ipv6.m3u'
+        'http://aktv.top/live.txt',
+        'https://raw.githubusercontent.com/yuanzl77/IPTV/main/直播/央视频道.txt',
+        'https://live.zhoujie218.top/tv/iptv4.txt',
+        'https://raw.githubusercontent.com/Guovin/TV/gd/output/result.txt',
+        'https://raw.githubusercontent.com/jiangnan1224/iptv_ipv4_live/refs/heads/main/live_ipv4.txt'
     ]
     fetch_and_filter(urls)
