@@ -31,8 +31,31 @@ def fetch_content(url):
 def filter_content(content):
     if content is None:
         return []
-    keywords = ["㊙VIP测试", "关注公众号", "天微科技", "获取测试密码", "更新时间", "♥聚玩盒子", "🌹防失联","📡  更新日期","👉",]
-    return [line for line in content.splitlines() if not any(keyword in line for keyword in keywords)]
+    keywords = ["㊙VIP测试", "关注公众号", "天微科技", "获取测试密码", "更新时间", "♥聚玩盒子", "🌹防失联","📡  更新日期","👉", 
+                "💓专享源🅰️", "💓专享源🅱️", "关于本源", "每日一首", "MovieMusic", "AMC音乐", "公告"]
+    
+    # 首先按关键词过滤
+    filtered_lines = [line for line in content.splitlines() if not any(keyword in line for keyword in keywords)]
+    
+    # 然后移除每行中的emoji和特殊符号
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        "]+", flags=re.UNICODE)
+    
+    cleaned_lines = []
+    for line in filtered_lines:
+        # 移除emoji
+        line = emoji_pattern.sub('', line)
+        # 如果行不是空的，添加到结果中
+        if line.strip():
+            cleaned_lines.append(line)
+    
+    return cleaned_lines
 
 def measure_stream_speed(url):
     try:
