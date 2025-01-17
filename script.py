@@ -3,15 +3,19 @@ import logging
 import subprocess
 import re
 import time
+import urllib3
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple
+
+# 禁用SSL警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 配置日志记录
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def check_url_validity(url):
     try:
-        response = requests.head(url, timeout=10)
+        response = requests.head(url, timeout=10, verify=False)
         response.raise_for_status()
         return True
     except requests.exceptions.RequestException as e:
@@ -21,7 +25,7 @@ def check_url_validity(url):
 def fetch_content(url):
     try:
         logging.info(f"Fetching content from {url}")
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=10, verify=False)
         response.raise_for_status()
         return response.content.decode('utf-8-sig')
     except requests.exceptions.RequestException as e:
