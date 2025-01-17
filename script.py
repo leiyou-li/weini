@@ -3,15 +3,29 @@ import logging
 import subprocess
 import re
 import time
+import urllib3
+import os
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Tuple
+
+# 禁用SSL警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 配置日志记录
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def check_ffmpeg():
+    """检查ffmpeg是否可用"""
+    try:
+        subprocess.run(['ffmpeg', '-version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return True
+    except FileNotFoundError:
+        logging.error("未找到ffmpeg。请确保ffmpeg已正确安装并添加到系统PATH中。")
+        return False
+
 def check_url_validity(url):
     try:
-        response = requests.head(url, timeout=10)
+        response = requests.head(url, timeout=10, verify=False)
         response.raise_for_status()
         return True
     except requests.exceptions.RequestException as e:
@@ -21,7 +35,7 @@ def check_url_validity(url):
 def fetch_content(url):
     try:
         logging.info(f"Fetching content from {url}")
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=10, verify=False)
         response.raise_for_status()
         return response.content.decode('utf-8-sig')
     except requests.exceptions.RequestException as e:
@@ -35,33 +49,73 @@ def filter_content(content):
     return [line for line in content.splitlines() if not any(keyword in line for keyword in keywords)]
 
 def check_stream_quality(url) -> Tuple[bool, float]:
+    """检查流媒体质量，返回(是否可用, 质量分数)"""
+    if not check_ffmpeg():
+        raise RuntimeError("ffmpeg工具未安装，无法进行流畅度检测")
+
     try:
         # 使用ffmpeg检查流媒体质量
-        command = ['ffmpeg', '-i', url, '-t', '10', '-filter:v', 'fps=fps=1', '-f', 'null', '-']
+        # -v quiet: 减少输出
+        # -stats: 显示进度统计
+        # -i: 输入文件
+        # -t 10: 只读取10秒
+        # -filter:v fps=fps=1: 设置帧率过滤器
+        command = [
+            'ffmpeg',
+            '-v', 'quiet',
+            '-stats',
+            '-i', url,
+            '-t', '10',
+            '-filter:v', 'fps=fps=1',
+            '-f', 'null',
+            '-'
+        ]
+
         start_time = time.time()
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
+        process = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True
+        )
         
-        if result.returncode == 0:
-            # 计算处理速度作为质量指标
-            duration = time.time() - start_time
-            stderr_output = result.stderr.decode('utf-8')
-            
+        stdout, stderr = process.communicate(timeout=20)
+        duration = time.time() - start_time
+        
+        if process.returncode == 0:
             # 提取视频信息
-            bitrate_match = re.search(r'bitrate: (\d+) kb/s', stderr_output)
-            fps_match = re.search(r'(\d+(?:\.\d+)?) fps', stderr_output)
+            bitrate_match = re.search(r'bitrate[=:]\\s*(\\d+)\\s*kb/s', stderr)
+            fps_match = re.search(r'(\\d+(?:\\.\\d+)?)\\s*fps', stderr)
+            resolution_match = re.search(r'(\\d+x\\d+)', stderr)
             
-            # 计算质量分数 (基于比特率、FPS和响应时间)
+            # 计算质量分数 (基于多个指标)
             quality_score = 0.0
-            if bitrate_match:
-                quality_score += float(bitrate_match.group(1)) / 1000  # 将比特率转换为Mbps
-            if fps_match:
-                quality_score += float(fps_match.group(1))
-            quality_score += (20 - min(duration, 20)) / 2  # 响应时间影响（最大10分）
             
+            # 比特率得分 (最高40分)
+            if bitrate_match:
+                bitrate = float(bitrate_match.group(1))
+                quality_score += min(bitrate / 100, 40)  # 4000kbps 可得到最高分
+            
+            # 帧率得分 (最高30分)
+            if fps_match:
+                fps = float(fps_match.group(1))
+                quality_score += min(fps, 30)  # 30fps 可得到最高分
+            
+            # 分辨率得分 (最高20分)
+            if resolution_match:
+                width, height = map(int, resolution_match.group(1).split('x'))
+                resolution_score = (width * height) / (1920 * 1080) * 20
+                quality_score += min(resolution_score, 20)
+            
+            # 响应时间得分 (最高10分)
+            quality_score += max(0, 10 - duration)  # 响应越快分数越高
+            
+            logging.info(f"Stream quality check passed for {url} with score {quality_score}")
             return True, quality_score
         else:
-            logging.error(f"Stream {url} is not playable: {result.stderr.decode('utf-8')}")
+            logging.error(f"Stream {url} is not playable: {stderr}")
             return False, 0.0
+            
     except subprocess.TimeoutExpired:
         logging.error(f"Stream {url} check timed out")
         return False, 0.0
