@@ -84,9 +84,9 @@ def check_stream_quality(url) -> Tuple[bool, float]:
         
         if process.returncode == 0:
             # 提取视频信息
-            bitrate_match = re.search(r'bitrate[=:]\\s*(\\d+)\\s*kb/s', stderr)
-            fps_match = re.search(r'(\\d+(?:\\.\\d+)?)\\s*fps', stderr)
-            resolution_match = re.search(r'(\\d+x\\d+)', stderr)
+            bitrate_match = re.search(r'bitrate[=:]\s*(\d+)\s*kb/s', stderr)
+            fps_match = re.search(r'(\d+(?:\.\d+)?)\s*fps', stderr)
+            resolution_match = re.search(r'(\d+x\d+)', stderr)
             
             # 计算质量分数 (基于多个指标)
             quality_score = 0.0
