@@ -43,7 +43,12 @@ def filter_content(content):
         # 检查是否是分类标记
         if line.strip().endswith('#genre#'):
             skip_section = False
-            current_category = line
+            # 检查这个分类是否需要被过滤
+            if not any(keyword in line for keyword in keywords):
+                current_category = line
+                filtered_lines.append(line)
+            else:
+                current_category = None
             continue
             
         # 检查是否是需要跳过的分类标记
@@ -53,10 +58,6 @@ def filter_content(content):
             
         # 如果不在需要跳过的分类中
         if not skip_section:
-            # 如果有未添加的分类标题，先添加它
-            if current_category:
-                filtered_lines.append(current_category)
-                current_category = None
             filtered_lines.append(line)
     
     # 然后移除每行中的emoji和特殊符号
@@ -71,11 +72,15 @@ def filter_content(content):
     
     cleaned_lines = []
     for line in filtered_lines:
-        # 移除emoji
-        line = emoji_pattern.sub('', line)
-        # 如果行不是空的，添加到结果中
-        if line.strip():
+        # 如果是分类标记行，保留原样
+        if line.strip().endswith('#genre#'):
             cleaned_lines.append(line)
+        else:
+            # 移除emoji
+            line = emoji_pattern.sub('', line)
+            # 如果行不是空的，添加到结果中
+            if line.strip():
+                cleaned_lines.append(line)
     
     return cleaned_lines
 
