@@ -1,7 +1,10 @@
 import requests
 import logging
 import subprocess
+import re
 from concurrent.futures import ThreadPoolExecutor
+from collections import defaultdict
+import time
 
 # 配置日志记录
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -29,7 +32,22 @@ def filter_content(content):
     if content is None:
         return []
     keywords = ["㊙VIP测试", "关注公众号", "天微科技", "获取测试密码", "更新时间", "♥聚玩盒子", "🌹防失联","📡  更新日期","👉",]
-    return [line for line in content.splitlines() if 'ipv6' not in line.lower() and not any(keyword in line for keyword in keywords)]
+    return [line for line in content.splitlines() if not any(keyword in line for keyword in keywords)]
+
+def measure_stream_speed(url):
+    try:
+        start_time = time.time()
+        # 使用ffmpeg获取前3秒的流数据来测试速度
+        command = ['ffmpeg', '-i', url, '-t', '3', '-f', 'null', '-']
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
+        end_time = time.time()
+        
+        if result.returncode == 0:
+            # 返回响应时间（秒）
+            return end_time - start_time
+        return float('inf')  # 如果失败返回无穷大
+    except Exception:
+        return float('inf')
 
 def check_stream_validity(url):
     try:
@@ -48,6 +66,17 @@ def check_stream_validity(url):
         logging.error(f"Error checking stream {url}: {e}")
         return False
 
+def extract_channel_name(line):
+    # 尝试从行中提取频道名称
+    if ',' in line:  # m3u格式
+        return line.split(',')[-1].strip()
+    else:  # 其他格式
+        parts = line.split()
+        if len(parts) > 1:
+            # 假设URL在前，名称在后
+            return ' '.join(parts[1:]).strip()
+    return None
+
 def fetch_and_filter(urls):
     filtered_lines = []
     
@@ -60,46 +89,60 @@ def fetch_and_filter(urls):
     for content in results:
         filtered_lines.extend(filter_content(content))
     
-    # 检查即将生成的live_ipv4.txt文件中的每个URL直播源是否能正常流畅直播
+    # 按频道名称分组并测试速度
+    channel_groups = defaultdict(list)
     valid_lines = []
-    with ThreadPoolExecutor(max_workers=5) as executor:  # 限制并发请求数量
+    
+    with ThreadPoolExecutor(max_workers=5) as executor:
         futures = []
+        valid_streams = []
+        
+        # 首先检查流的有效性
         for line in filtered_lines:
             if line.startswith('http'):
-                url = line.split()[0]  # 提取URL部分
-                futures.append(executor.submit(check_stream_validity, url))
+                url = line.split()[0]
+                if check_stream_validity(url):
+                    valid_streams.append(line)
             else:
-                valid_lines.append(line)
+                valid_streams.append(line)
         
-        for line, future in zip(filtered_lines, futures):
+        # 对有效的流进行速度测试和分组
+        for line in valid_streams:
             if line.startswith('http'):
                 url = line.split()[0]
-                if future.result():
-                    valid_lines.append(line)
-                else:
-                    logging.warning(f"Skipping unplayable stream: {url}")
+                channel_name = extract_channel_name(line)
+                if channel_name:
+                    speed = measure_stream_speed(url)
+                    channel_groups[channel_name].append((speed, line))
             else:
                 valid_lines.append(line)
     
+    # 对每个频道组内的流按速度排序
+    sorted_lines = []
+    for channel_name, streams in channel_groups.items():
+        # 按速度排序（升序）
+        sorted_streams = sorted(streams, key=lambda x: x[0])
+        # 只添加有效的流（速度不是无穷大的）
+        sorted_lines.extend([stream[1] for stream in sorted_streams if stream[0] != float('inf')])
+    
+    # 将非http行和排序后的流合并
+    final_lines = valid_lines + sorted_lines
+    
     with open('live_ipv4.txt', 'w', encoding='utf-8') as file:
-        file.write('\n'.join(valid_lines))
-    logging.info("Filtered content saved to live_ipv4.txt")
+        file.write('\n'.join(final_lines))
+    logging.info("Filtered and speed-sorted content saved to live_ipv4.txt")
 
 if __name__ == "__main__":
     urls = [
-        'https://raw.githubusercontent.com/leiyou-li/IPTV4/refs/heads/main/live.txt',
         'https://raw.githubusercontent.com/kimwang1978/collect-tv-txt/main/merged_output.txt',
-        'http://xhztv.top/zbc.txt',
+        'https://raw.githubusercontent.com/vbskycn/iptv/master/tv/iptv4.txt',
+        'https://raw.githubusercontent.com/YueChan/Live/main/APTV.m3u',
         'http://ww.weidonglong.com/dsj.txt',
-        'https://tv.youdu.fan:666/live/',
-        'https://live.zhoujie218.top/tv/iptv6.txt',
-        'http://tipu.xjqxz.top/live1213.txt',
-        'https://tv.iill.top/m3u/Live',
-        'http://www.lyyytv.cn/yt/zhibo/1.txt',
         'http://live.nctv.top/x.txt',
-        'http://www.lyyytv.cn/yt/zhibo/1.txt',
-        'https://github.moeyy.xyz/https://raw.githubusercontent.com/Ftindy/IPTV-URL/main/huyayqk.m3u',
-        'https://ghp.ci/raw.githubusercontent.com/MemoryCollection/IPTV/refs/heads/main/itvlist.m3u',
-        'https://live.fanmingming.com/tv/m3u/ipv6.m3u'
+        'http://aktv.top/live.txt',
+        'https://raw.githubusercontent.com/yuanzl77/IPTV/main/直播/央视频道.txt',
+        'https://live.zhoujie218.top/tv/iptv4.txt',
+        'https://raw.githubusercontent.com/Guovin/TV/gd/output/result.txt',
+        'https://raw.githubusercontent.com/jiangnan1224/iptv_ipv4_live/refs/heads/main/live_ipv4.txt'
     ]
     fetch_and_filter(urls)
