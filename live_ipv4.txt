@@ -921,7 +921,7 @@ www.izbds.com,https://vd2.bdstatic.com/mda-sctj0f6r4u1bpebc/1080p/cae_h264/17747
 <title>aktv.top</title>
 <script type="text/javascript" src="/js/fingerprint/iife.min.js"></script>
 <script type="text/javascript">
-var redirect_link = 'http://aktv.top/live.txt?tr_uuid=20260520-1337-463d-9ca2-759065706343&';
+var redirect_link = 'http://aktv.top/live.txt?tr_uuid=20260520-1935-02ec-8a82-15c65647ff7c&';
 let redirected = false;
 function redirect(suffix) {
 	if (redirected) return;
@@ -943,8 +943,8 @@ try {
 <style> body { background:#101c36 } </style>
 </head>
 <body bgcolor="#ffffff" text="#000000">
-<div style='display: none;'><a href='http://aktv.top/live.txt?tr_uuid=20260520-1337-463d-9ca2-759065706343&fp=-3'>Click here to enter</a></div>
-<noscript><meta http-equiv="refresh" content="0; URL=http://aktv.top/live.txt?tr_uuid=20260520-1337-463d-9ca2-759065706343&fp=-5"></noscript>
+<div style='display: none;'><a href='http://aktv.top/live.txt?tr_uuid=20260520-1935-02ec-8a82-15c65647ff7c&fp=-3'>Click here to enter</a></div>
+<noscript><meta http-equiv="refresh" content="0; URL=http://aktv.top/live.txt?tr_uuid=20260520-1935-02ec-8a82-15c65647ff7c&fp=-5"></noscript>
 </body>
 </html>
 : https://yuanzl77.github.io - LR
