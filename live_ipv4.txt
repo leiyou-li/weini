@@ -525,6 +525,24 @@ CGTN,https://0472.org/hls/cgtnd.m3u8
 2025,https://svip.high24-playback.com/20250129/17159_7bca93c4/2000k/hls/mixed.m3u8
 2026-11-04 12:22:58,https://vd2.bdstatic.com/mda-sctj0f6r4u1bpebc/1080p/cae_h264/1774706523506678171/mda-sctj0f6r4u1bpebc.mp4
 www.izbds.com,https://vd2.bdstatic.com/mda-sctj0f6r4u1bpebc/1080p/cae_h264/1774706523506678171/mda-sctj0f6r4u1bpebc.mp4
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>aktv.top</title>
+<meta name="description" content="Find information, resources and relevant links for aktv.top. This domain may be for sale.">
+<script async src="https://assets.abovedomains.com/javascript/forsale.min.js?d=aktv.top"></script>
+<style>body{background:#101c36;color:#fff;font-family:Helvetica,Arial,sans-serif;margin:0}h1{text-align:center;margin-top:1rem}.content{max-width:640px;margin:1rem auto;padding:0 1rem;text-align:center}.footer{text-align:center;padding:1.5rem 1rem;font-size:.85rem}.footer a{color:#fff}</style>
+</head>
+<body>
+<h1>aktv.top</h1>
+<div class="content">Find information, resources and relevant links for aktv.top.<br/>This domain may be for sale.</div>
+<div class="footer">
+<a href="/terms.html">Terms of Service</a> <span>|</span> <a href="/privacy.html">Privacy Policy</a>
+</div>
+</body>
+</html>
 央视频道,#genre#
 CCTV3,http://222.169.85.8:9901/tsfile/live/0003_1.m3u8?key=txiptv&playlive=1&authid=0
 CCTV8,http://124.165.251.82:85/tsfile/live/0008_1.m3u8?key=txiptv&playlive=1&authid=0
